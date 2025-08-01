@@ -1,0 +1,13 @@
+[project]
+name = "gpt2-base"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "matplotlib>=3.10.5",
+    "numpy==1.26.4",
+    "tensorflow>=2.18.1",
+    "tiktoken>=0.9.0",
+    "torch>=2.7.1",
+]
