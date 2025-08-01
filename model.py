@@ -2,18 +2,10 @@ import tiktoken
 import torch
 from torch import nn
 
+from config import GPT2_124M_Config
+
 torch.manual_seed(123)
 tokenizer = tiktoken.get_encoding('gpt2')
-
-GPT2_124M_Config = {
-    "vocab_size": 50257,
-    "ctx_length": 1024,
-    "embed_dim": 768,
-    # effectively n_blocks
-    "n_layers": 12,
-    "n_heads": 12,
-    "drop_rate": 0.1
-}
 
 # scale, shift, epsilon
 class LayerNorm(nn.Module):
@@ -148,31 +140,3 @@ class GPT(nn.Module):
         logits = self.out_head(x)
 
         return logits
-
-model = GPT(GPT2_124M_Config)
-
-total_params = sum(p.numel() for p in model.parameters())
-# weight tying factored in
-print(f"Total parameter count: {total_params - model.tok_embed.weight.numel():,}",)
-
-def generate_text(model, tokens, max_new_tokens, ctx_size):
-    for _ in range(max_new_tokens):
-        truncated_tokens = tokens[:, -ctx_size:]
-
-        with torch.no_grad():
-            logits = model(truncated_tokens)
-
-        logits = logits[:, -1, :]
-        probas = torch.softmax(logits, dim=-1)
-        next_token = torch.argmax(probas, dim=-1, keepdim=True)
-
-        tokens = torch.cat((tokens, next_token), dim=1)
-    return tokens
-
-start_ctx = "Hello, I am"
-encoded_tokens = tokenizer.encode(start_ctx)
-# 4 -> 1, 4
-encoded_tensor = torch.tensor(encoded_tokens).unsqueeze(0)
-
-out = generate_text(model, encoded_tensor, 6, GPT2_124M_Config['ctx_length'])
-print(tokenizer.decode((out.squeeze(0)).tolist()))
