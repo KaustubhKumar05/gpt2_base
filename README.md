@@ -1,6 +1,6 @@
 # GPT-2 Small Base
 
-Replication of [Sebastian Raschka's implementation](https://github.com/rasbt/LLMs-from-scratch) with a cli chat with streamed responses 
+Replication of [Sebastian Raschka's implementation](https://github.com/rasbt/LLMs-from-scratch) with a cli chat that streams responses 
 
 
 ## Running on local
