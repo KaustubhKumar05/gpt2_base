@@ -15,6 +15,7 @@ class ChatInterface:
         self.setup_complete = False
         self.output_queue = Queue()
         self.stop_event = threading.Event()
+        self.temperature = 0.7
 
     def _stream_output(self):
         while not self.stop_event.is_set():
@@ -25,7 +26,7 @@ class ChatInterface:
                 time.sleep(0.05)
 
     def _run_model(self, prompt):
-        for word in self.model_func(prompt):
+        for word in self.model_func(prompt, temperature=self.temperature):
             if self.stop_event.is_set():
                 break
             self.output_queue.put(word)
@@ -50,8 +51,19 @@ class ChatInterface:
                         print("\nAvailable commands:")
                         print(" :h - Show commands")
                         print(" :q - End the chat")
-                        print(" :cls - Clear screen\n")
-                    elif cmd == 'cls':
+                        print(" :c - Clear screen\n")
+                        print(" :t <num> - Set the temperature. Default: 0.7")
+                    elif cmd.startswith('t '):
+                        try:
+                            new_temp = float(cmd.split()[1])
+                            if 0 < new_temp <= 5:
+                                self.temperature = new_temp + 1e-5
+                                print(f"Temperature set to {new_temp}")
+                            else:
+                                print("Temperature must be between 0 and 5")
+                        except (IndexError, ValueError):
+                            print("Usage: :t <number> (e.g. :t 1.2)")
+                    elif cmd == 'c':
                         print("\033c", end="")
                     continue
 
@@ -74,9 +86,9 @@ class ChatInterface:
 
 if __name__ == "__main__":
     print("Initializing session...")
-    def get_completion_stream(prompt):
+    def get_completion_stream(prompt, temperature=0.7):
         device = "mps" if torch.mps.is_available() else "cpu"
-        return get_completion(model, prompt, device=device, temperature=0.1)
+        return get_completion(model, prompt, device=device, temperature=temperature)
 
     chat = ChatInterface(
         model_func=get_completion_stream,
