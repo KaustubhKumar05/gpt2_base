@@ -5,5 +5,6 @@ GPT2_124M_Config = {
     # effectively n_blocks
     "n_layers": 12,
     "n_heads": 12,
-    "drop_rate": 0.1
+    "drop_rate": 0.1,
+    "qkv_bias": True
 }

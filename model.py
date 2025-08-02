@@ -2,9 +2,7 @@ import tiktoken
 import torch
 from torch import nn
 
-from config import GPT2_124M_Config
-
-torch.manual_seed(123)
+# torch.manual_seed(123)
 tokenizer = tiktoken.get_encoding('gpt2')
 
 # scale, shift, epsilon
@@ -39,7 +37,7 @@ class FeedForward(nn.Module):
         return self.layers(x)
 
 class MultiHeadAttention(nn.Module):
-    def __init__(self, d_in, d_out, ctx_length, n_heads, dropout):
+    def __init__(self, d_in, d_out, ctx_length, n_heads, dropout, qkv_bias = False):
         super().__init__()
         assert d_out % n_heads == 0, "d_out must be divisible by n_heads"
 
@@ -47,9 +45,9 @@ class MultiHeadAttention(nn.Module):
         self.n_heads = n_heads
         self.head_dim = d_out // n_heads
 
-        self.Wq = nn.Linear(d_in, d_out)
-        self.Wk = nn.Linear(d_in, d_out)
-        self.Wv = nn.Linear(d_in, d_out)
+        self.Wq = nn.Linear(d_in, d_out, bias = qkv_bias)
+        self.Wk = nn.Linear(d_in, d_out, bias = qkv_bias)
+        self.Wv = nn.Linear(d_in, d_out, bias = qkv_bias)
 
         self.out_proj = nn.Linear(d_out, d_out)
         self.dropout = nn.Dropout(dropout)
@@ -76,7 +74,7 @@ class MultiHeadAttention(nn.Module):
         attn_scores = queries @ keys.transpose(2, 3)
 
         # scale mask to input size and make it boolean
-        mask_bool = self.mask.bool()[:n_tokens, :n_tokens]
+        mask_bool = (self.mask.bool()[:n_tokens, :n_tokens]).to(x.device)
 
         attn_scores.masked_fill_(mask_bool, -torch.inf)
 
@@ -97,7 +95,7 @@ class TransformerBlock(nn.Module):
     def __init__(self, config):
         super().__init__()
 
-        self.attn = MultiHeadAttention(config["embed_dim"], config["embed_dim"], config["ctx_length"], n_heads=config["n_heads"], dropout=config["drop_rate"])
+        self.attn = MultiHeadAttention(config["embed_dim"], config["embed_dim"], config["ctx_length"], n_heads=config["n_heads"], dropout=config["drop_rate"], qkv_bias=config["qkv_bias"])
         self.ff = FeedForward(config["embed_dim"])
         self.ln1 = LayerNorm(config["embed_dim"])
         self.ln2 = LayerNorm(config["embed_dim"])
@@ -125,7 +123,7 @@ class GPT(nn.Module):
         self.trf_blocks = nn.Sequential(*(TransformerBlock(config) for _ in range(config['n_layers'])))
 
         self.final_norm = LayerNorm(config['embed_dim'])
-        self.out_head = nn.Linear(config['embed_dim'], config['vocab_size'], bias=False)
+        self.out_head = nn.Linear(config['embed_dim'], config['vocab_size'], bias=config["qkv_bias"])
 
 
     def forward(self, items):
