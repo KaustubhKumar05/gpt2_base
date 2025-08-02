@@ -30,8 +30,9 @@ def get_completion(model, text, device, max_new_tokens = 25, ctx_size = GPT2_124
 
         if next_token.item() == tokenizer.eot_token:
             break
+
+        yield tokens_to_text(next_token, tokenizer)
         tokens = torch.cat((tokens, next_token), dim=1)
-    return tokens_to_text(tokens, tokenizer)
 
 def assign(left, right):
     if left.shape != right.shape:
